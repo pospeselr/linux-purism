@@ -14,5 +14,6 @@ cd linux-pureos
 # go back to the base directory and build.
 echo "Building linux..."
 export CONCURRENCY_LEVEL=4
+make xconfig
 fakeroot make-kpkg --jobs=4 --initrd kernel_image kernel_headers modules_image
 cd $basedir
