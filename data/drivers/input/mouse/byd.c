@@ -11,7 +11,7 @@
  * License, or (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * WITHOUT ANY WARRANTY; without even the implied warran`ty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  * General Public License for more details.
  *
@@ -34,8 +34,6 @@
 #include "psmouse.h"
 #include "byd.h"
 
-#define DEBUG 1
-
 #define BYD_MODEL_ID_LEN        2
 #define BYD_CMD_PAIR(c)		((1 << 12) | (c))
 #define BYD_CMD_PAIR_R(r,c)	((1 << 12) | (r << 8) | (c))
@@ -47,13 +45,13 @@
  *  0 : disable
  *  1 : enable
  */
-#define BYD_CMD_SET_OFFSCREEN_SWIPE             BYD_CMD_PAIR(0xcc)
+#define BYD_CMD_SET_OFFSCREEN_SWIPE             0xcc
 /*
  * tap and drag delay time
  *  0 : disable
  *  1 - 8 : least to most delay
  */
-#define BYD_CMD_SET_TAP_DRAG_DELAY_TIME         BYD_CMD_PAIR(0xcf)
+#define BYD_CMD_SET_TAP_DRAG_DELAY_TIME         0xcf
 /*
  * physical buttons function mapping
  *  0 : enable
@@ -62,13 +60,13 @@
  *  6 : right button custom command
  *  8 : disable
  */
-#define BYD_CMD_SET_PHYSICAL_BUTTONS            BYD_CMD_PAIR(0xd0)
+#define BYD_CMD_SET_PHYSICAL_BUTTONS            0xd0
 /*
  * absolute mode (1 byte X/Y resolution)
  *  0 : disable
  *  2 : enable
  */
-#define BYD_CMD_SET_ABSOLUTE_MODE               BYD_CMD_PAIR(0xd1)
+#define BYD_CMD_SET_ABSOLUTE_MODE               0xd1
 /*
  * two finger scrolling
  *  1 : vertical
@@ -76,31 +74,31 @@
  *  3 : vertical + horizontal
  *  4 : disable
  */
-#define BYD_CMD_SET_TWO_FINGER_SCROLL           BYD_CMD_PAIR(0xd2)
+#define BYD_CMD_SET_TWO_FINGER_SCROLL           0xd2
 /*
  * handedness
  *  1 : right handed
  *  2 : left handed
  */
-#define BYD_CMD_SET_HANDEDNESS                  BYD_CMD_PAIR(0xd3)
+#define BYD_CMD_SET_HANDEDNESS                  0xd3
 /*
  * tap to click
  *  1 : enable
  *  2 : disable
  */
-#define BYD_CMD_SET_TAP                         BYD_CMD_PAIR(0xd4)
+#define BYD_CMD_SET_TAP                         0xd4
 /*
  * tap and drag
  *  1 : tap and hold to drag
  *  2 : tap and hold to drag + lock
  *  3 : disable
  */
-#define BYD_CMD_SET_TAP_DRAG                    BYD_CMD_PAIR(0xd5)
+#define BYD_CMD_SET_TAP_DRAG                    0xd5
 /*
  * touch sensitivity
  *  1 - 7 : least to most sensitive
  */
-#define BYD_CMD_SET_TOUCH_SENSITIVITY           BYD_CMD_PAIR(0xd6)
+#define BYD_CMD_SET_TOUCH_SENSITIVITY           0xd6
 /*
  * one finger scrolling
  *  1 : vertical
@@ -108,7 +106,7 @@
  *  3 : vertical + horizontal
  *  4 : disable
  */
-#define BYD_CMD_SET_ONE_FINGER_SCROLL           BYD_CMD_PAIR(0xd7)
+#define BYD_CMD_SET_ONE_FINGER_SCROLL           0xd7
 /*
  * one finger scrolling function
  *  1 : free scrolling
@@ -116,88 +114,115 @@
  *  3 : free scrolling + edge motion
  *  4 : disable
  */
-#define BYD_CMD_SET_ONE_FINGER_SCROLL_FUNC      BYD_CMD_PAIR(0xd8)
+#define BYD_CMD_SET_ONE_FINGER_SCROLL_FUNC      0xd8
 /*
  * sliding speed
  *  1 - 5 : slowest to fastest
  */
-#define BYD_CMD_SET_SLIDING_SPEED               BYD_CMD_PAIR(0xda)
+#define BYD_CMD_SET_SLIDING_SPEED               0xda
 /*
  * edge motion
  *  1 : disable
  *  2 : enable when dragging
  *  3 : enable when dragging and pointing
  */
-#define BYD_CMD_SET_EDGE_MOTION                 BYD_CMD_PAIR(0xdb)
+#define BYD_CMD_SET_EDGE_MOTION                 0xdb
 /*
  * left edge region size
  *  0 - 7 : smallest to largest width
  */
-#define BYD_CMD_SET_LEFT_EDGE_REGION            BYD_CMD_PAIR(0xdc)
+#define BYD_CMD_SET_LEFT_EDGE_REGION            0xdc
 /* 
  * top edge region size
  *  0 - 9 : smallest to largest height
  */
-#define BYD_CMD_SET_TOP_EDGE_REGION             BYD_CMD_PAIR(0xdd)
+#define BYD_CMD_SET_TOP_EDGE_REGION             0xdd
 /*
  * disregard palm press as clicks
  *  1 - 6 : smallest to largest
  */
-#define BYD_CMD_SET_PALM_CHECK                  BYD_CMD_PAIR(0xde)
+#define BYD_CMD_SET_PALM_CHECK                  0xde
 /* right edge region size
  *  0 - 7 : smallest to largest width
  */
-#define BYD_CMD_SET_RIGHT_EDGE_REGION           BYD_CMD_PAIR(0xdf)
+#define BYD_CMD_SET_RIGHT_EDGE_REGION           0xdf
 /*
  * bottom edge region size
  *  0 - 9 : smallest to largest height
  */
-#define BYD_CMD_SET_BOTTOM_EDGE_REGION          BYD_CMD_PAIR(0xe1)
+#define BYD_CMD_SET_BOTTOM_EDGE_REGION          0xe1
 /*
  * multitouch gestures
  *  1 : enable
  *  2 : disable
  */
-#define BYD_CMD_SET_MULTITOUCH                  BYD_CMD_PAIR(0xe3)
+#define BYD_CMD_SET_MULTITOUCH                  0xe3
 /*
  * edge motion speed
  *  0 : control with finger pressure
  *  1 - 9 : slowest to fastest
  */
-#define BYD_CMD_SET_EDGE_MOTION_SPEED           BYD_CMD_PAIR(0xe4)
+#define BYD_CMD_SET_EDGE_MOTION_SPEED           0xe4
 /*
  * two finger scolling funtion
- *  1 : free scrolling
+ *  0 : free scrolling
+ *  1 : free scrolling (with momentum)
  *  2 : edge motion
- *  3 : free scrolling  + edge motion
+ *  3 : free scrolling (with momentum) + edge motion
  *  4 : disable
  */
-#define BYD_CMD_SET_TWO_FINGER_SCROLL_FUNC      BYD_CMD_PAIR(0xe5)
+#define BYD_CMD_SET_TWO_FINGER_SCROLL_FUNC      0xe5
+
+/* BYD Packets */
+
+#define BYD_PKT_RELATIVE                        0x00
+#define BYD_PKT_ABSOLUTE                        0xf8
+#define BYD_PKT_PINCH_IN                        0xd8
+#define BYD_PKT_PINCH_OUT                       0x28
+#define BYD_PKT_ROTATE_CLOCKWISE                0x29 
+#define BYD_PKT_ROTATE_ANTICLOCKWISE            0xd7
+#define BYD_PKT_TWO_FINGER_SCROLL_RIGHT         0x2a
+#define BYD_PKT_TWO_FINGER_SCROLL_DOWN          0x2b
+#define BYD_PKT_TWO_FINGER_SCROLL_UP            0xd5
+#define BYD_PKT_TWO_FINGER_SCROLL_LEFT          0xd6
+#define BYD_PKT_THREE_FINGER_SWIPE_RIGHT        0x2c
+#define BYD_PKT_THREE_FINGER_SWIPE_DOWN         0x2d
+#define BYD_PKT_THREE_FINGER_SWIPE_UP           0xd3
+#define BYD_PKT_THREE_FINGER_SWIPE_LEFT         0xd4
+#define BYD_PKT_FOUR_FINGER_DOWN                0x33
+#define BYD_PKT_FOUR_FINGER_UP                  0xcd
+#define BYD_PKT_REGION_SCROLL_RIGHT             0x35
+#define BYD_PKT_REGION_SCROLL_DOWN              0x36
+#define BYD_PKT_REGION_SCROLL_UP                0xca
+#define BYD_PKT_REGION_SCROLL_LEFT              0xcb
+#define BYD_PKT_RIGHT_CORNER_CLICK              0xd2
+#define BYD_PKT_LEFT_CORNER_CLICK               0x2e
+#define BYD_PKT_LEFT_AND_RIGHT_CORNER_CLICK     0x2f
+#define BYD_PKT_ONTO_PAD_SWIPE_RIGHT            0x37
+#define BYD_PKT_ONTO_PAD_SWIPE_DOWN             0x30
+#define BYD_PKT_ONTO_PAD_SWIPE_UP               0xd0
+#define BYD_PKT_ONTO_PAD_SWIPE_LEFT             0xc9
 
 struct byd_init_command_pair {
-	uint32_t command;
+	uint8_t command;
 	uint8_t  value;
 };
 
 static const struct byd_init_command_pair init_commands[] = {
 	{BYD_CMD_SET_HANDEDNESS, 0x01},
-	{BYD_CMD_SET_PHYSICAL_BUTTONS, 0x06},
+	{BYD_CMD_SET_PHYSICAL_BUTTONS, 0x04},
 	{BYD_CMD_SET_TAP, 0x02},
-	{BYD_CMD_SET_TAP_DRAG, 0x03},
 	{BYD_CMD_SET_ONE_FINGER_SCROLL, 0x04},
-	{BYD_CMD_SET_SLIDING_SPEED, 0x03},
 	{BYD_CMD_SET_EDGE_MOTION, 0x01},
-	{BYD_CMD_SET_TOUCH_SENSITIVITY, 0x01},
-	{BYD_CMD_SET_PALM_CHECK, 0x00},
+	{BYD_CMD_SET_PALM_CHECK, 0x01},
 	{BYD_CMD_SET_MULTITOUCH, 0x01},
-	{BYD_CMD_SET_TAP_DRAG_DELAY_TIME, 0x00},
 	{BYD_CMD_SET_TWO_FINGER_SCROLL, 0x03},
-	{BYD_CMD_SET_TWO_FINGER_SCROLL_FUNC, 0x01},
+	{BYD_CMD_SET_TWO_FINGER_SCROLL_FUNC, 0x00},
 	{BYD_CMD_SET_LEFT_EDGE_REGION, 0x00},
 	{BYD_CMD_SET_TOP_EDGE_REGION, 0x00},
 	{BYD_CMD_SET_RIGHT_EDGE_REGION, 0x0},
 	{BYD_CMD_SET_BOTTOM_EDGE_REGION, 0x00},
-	{BYD_CMD_SET_ABSOLUTE_MODE, 0x00},
+	{BYD_CMD_SET_ABSOLUTE_MODE, 0x02},
 };
 
 struct byd_model_info {
@@ -205,94 +230,55 @@ struct byd_model_info {
 	char id[BYD_MODEL_ID_LEN];
 };
 
+
 static struct byd_model_info byd_model_data[] = {
 	{ "BTP10463", { 0x03, 0x64 } }
 };
 
-#if 0
-static const unsigned char byd_init_param[] = {
-
-	0xd3, 0x01,  // set right-handedness
-	0xd0, 0x00,  // reset button
-	0xd0, 0x06,  // send click in both corners as separate gestures
-	0xd4, 0x02,  // disable tapping.
-	0xd5, 0x03,  // tap and drag off
-	0xd7, 0x04,  // edge scrolling off
-	0xd8, 0x04,  // edge motion disabled
-	0xda, 0x04,  // slide speed fast
-	0xdb, 0x01,  // Edge motion off
-	0xe4, 0x05,  // Edge motion speed middle.
-	0xd6, 0x07,  // Touch Gesture Sensitivity high
-	0xde, 0x01,  // Palm detection low: seems to affect gesture detection
-	0xe3, 0x01,  // Enable gesture detection
-	0xcf, 0x00,  // Tap/Drag delay - off
-	0xd2, 0x03,  // Enable two-finger scrolling gesture in both directions
-	0xe5, 0x00,  // Two finger continue scrolling at edge - off
-	// 0xd9, 0x02,  // unknown - unnecessary?
-	// 0xd9, 0x07,  // unknown - unnecessary?
-	0xdc, 0x03,  // left edge width medium
-	0xdd, 0x03,  // top edge height medium
-	0xdf, 0x03,  // right edge height medium
-	0xe1, 0x03,  // bottom edge height medium
-	0xd1, 0x00,  // no 'absolute' position interleaving
-	// 0xe7, 0xe8,   // set scaling normal then double. (have to send be in pairs atm.)
-	0xce, 0x00,
-	0xcc, 0x00,
-	0xe0, 0x00
-};
-#endif
-
-#define BYD_CMD_GESTURE		 0
-#define BYD_CMD_SCROLL_INC	 1
-#define BYD_CMD_SCROLL_DEC	-1
-
-struct byd_ext_cmd {
-	char type;
-	unsigned char code;
-	int cmd;
+struct byd_data
+{
+	uint8_t abs_x;
+	uint8_t abs_y;
+	uint8_t button_left : 1;
+	uint8_t button_right : 1;
+	uint8_t touch : 1;
+	struct timer_list timer;
 };
 
-static const struct byd_ext_cmd byd_ext_cmd_data[] = {
-#if 0
-	{ BYD_CMD_SCROLL_DEC, 0x28, REL_Z       }, /* pinch out                 */
-	{ BYD_CMD_GESTURE,    0x29, BTN_FORWARD }, /* rotate clockwise          */
-	{ BYD_CMD_SCROLL_INC, 0x2a, REL_HWHEEL  }, /* scroll right (two finger) */
-	{ BYD_CMD_SCROLL_DEC, 0x2b, REL_WHEEL   }, /* scroll down (two finger)  */
-	{ BYD_CMD_GESTURE,    0x2c, BTN_SIDE    }, /* 3-finger-swipe right      */
-	{ BYD_CMD_GESTURE,    0x2d, BTN_TASK    }, /* 3-finger-swipe down       */
-	{ BYD_CMD_GESTURE,    0x33, BTN_MOUSE+10}, /* four finger down          */
-	{ BYD_CMD_SCROLL_INC, 0x35, REL_HWHEEL  }, /* scroll right (region)     */
-	{ BYD_CMD_SCROLL_DEC, 0x36, REL_WHEEL,  }, /* scroll down (region)      */
-	{ BYD_CMD_GESTURE,    0xd3, BTN_MOUSE+8 }, /* 3-finger-swipe up         */
-	{ BYD_CMD_GESTURE,    0xd4, BTN_EXTRA   }, /* 3-finger-swipe left       */
-	{ BYD_CMD_SCROLL_INC, 0xd5, REL_WHEEL   }, /* scroll up (two finger)    */
-	{ BYD_CMD_SCROLL_DEC, 0xd6, REL_HWHEEL  }, /* scroll left (two finger)  */
-	{ BYD_CMD_GESTURE,    0xd7, BTN_BACK    }, /* rotate anti-clockwise     */
-	{ BYD_CMD_SCROLL_INC, 0xd8, REL_RZ      }, /* pinch in                  */
-	{ BYD_CMD_SCROLL_INC, 0xca, REL_WHEEL   }, /* scroll up (region)        */
-	{ BYD_CMD_SCROLL_DEC, 0xcb, REL_HWHEEL  }, /* scroll left (region)      */
-	{ BYD_CMD_GESTURE,    0xcd, BTN_MOUSE+9 }, /* four finger up            */
-	{ BYD_CMD_GESTURE,    0xd2, BTN_RIGHT   }, /* right corner click        */
-	{ BYD_CMD_GESTURE,    0x2e, BTN_LEFT    }, /* left corner click         */
-#endif
-	{ BYD_CMD_GESTURE,    0x2e, BTN_LEFT    }, /* left corner click         */
-	{ BYD_CMD_GESTURE,    0xd2, BTN_RIGHT   }, /* right corner click        */	
-	{ BYD_CMD_SCROLL_DEC, 0x2b, REL_WHEEL   }, /* scroll down (two finger)  */
-	{ BYD_CMD_SCROLL_INC, 0xd5, REL_WHEEL   }, /* scroll up (two finger)    */
-	{ BYD_CMD_SCROLL_DEC, 0xd6, REL_HWHEEL  }, /* scroll left (two finger)  */
-	{ BYD_CMD_SCROLL_INC, 0x2a, REL_HWHEEL  }, /* scroll right (two finger) */
-};
+static void byd_report_input(struct psmouse *psmouse)
+{
+	struct byd_data *priv = (struct byd_data *)psmouse->private;
+	struct input_dev *dev = psmouse->dev;
 
-struct byd_data {
-	unsigned char ext_lookup[256];
-};
+	input_report_abs(dev, ABS_X, 10 * priv->abs_x);
+	input_report_abs(dev, ABS_Y, 10 * priv->abs_y);
+	input_report_key(dev, BTN_LEFT, priv->button_left);
+	input_report_key(dev, BTN_RIGHT, priv->button_right);
+	input_report_key(dev, BTN_TOUCH, priv->touch);
+
+	input_report_key(dev, BTN_TOOL_FINGER, 1);
+	
+	input_sync(dev);
+}
+
+static void byd_clear_touch(unsigned long data)
+{
+	struct psmouse *psmouse = (struct psmouse *)data;
+	struct byd_data *priv = psmouse->private;
+
+	serio_pause_rx(psmouse->ps2dev.serio);
+
+	priv->touch = 0;
+
+	byd_report_input(psmouse);
+
+	serio_continue_rx(psmouse->ps2dev.serio);
+}
 
 static psmouse_ret_t byd_process_byte(struct psmouse *psmouse)
 {
 	struct byd_data *priv = psmouse->private;
-	struct input_dev *dev = psmouse->dev;
 	unsigned char *packet = psmouse->packet;
-	int i;
 
 	if (psmouse->pktcnt < psmouse->pktsize)
 		return PSMOUSE_GOOD_DATA;
@@ -302,34 +288,22 @@ static psmouse_ret_t byd_process_byte(struct psmouse *psmouse)
 			packet[0], packet[1], packet[2], packet[3]);
 #endif
 
-	input_report_key(dev, BTN_LEFT,    packet[0]       & 1);
-	input_report_key(dev, BTN_MIDDLE, (packet[0] >> 2) & 1);
-	input_report_key(dev, BTN_RIGHT,  (packet[0] >> 1) & 1);
-
-	if (packet[3]) {
-		i = priv->ext_lookup[packet[3]];
-		if (i != 0xff && byd_ext_cmd_data[i].code == packet[3]) {
-#ifdef DEBUG
-			psmouse_dbg(psmouse, "process: %x %x\n",
-					byd_ext_cmd_data[i].code,
-					byd_ext_cmd_data[i].cmd);
-#endif
-			if (byd_ext_cmd_data[i].type == BYD_CMD_GESTURE) {
-				input_report_key(dev, byd_ext_cmd_data[i].cmd, 1);
-				input_report_key(dev, byd_ext_cmd_data[i].cmd, 0);
-			} else {
-				input_report_rel(dev, byd_ext_cmd_data[i].cmd,
-						byd_ext_cmd_data[i].type);
-			}
-		} else {
-			psmouse_warn(psmouse, "unknown code detected %x\n", packet[3]);
-		}
-	} else {
-		input_report_rel(dev, REL_X, packet[1] ? (int) packet[1] - (int) ((packet[0] << 4) & 0x100) : 0);
-		input_report_rel(dev, REL_Y, packet[2] ? (int) ((packet[0] << 3) & 0x100) - (int) packet[2] : 0);
+	switch(packet[3])
+	{
+		case BYD_PKT_ABSOLUTE:
+			priv->abs_x = packet[1];
+			priv->abs_y = 255 - packet[2];
+			priv->touch = 1;
+			/* fall through */
+		case BYD_PKT_RELATIVE:
+			priv->button_right = (packet[0] >> 1) & 1;
+			priv->button_left = packet[0] & 1;
+			break;
 	}
 
-	input_sync(dev);
+	byd_report_input(psmouse);
+	/* reset time since last touch */
+	mod_timer(&priv->timer, jiffies + msecs_to_jiffies(32));	
 
 	return PSMOUSE_FULL_PACKET;
 }
@@ -404,7 +378,7 @@ int byd_init(struct psmouse *psmouse)
 	 */
 	for(i = 0; i < ARRAY_SIZE(init_commands); i++) {
 		param[0] = init_commands[i].value;
-		cmd = init_commands[i].command;
+		cmd = BYD_CMD_PAIR(init_commands[i].command);
 		if(ps2_command(ps2dev, param, cmd)) {
 			error = -EIO;
 			goto init_fail;
@@ -425,21 +399,18 @@ int byd_init(struct psmouse *psmouse)
 		goto init_fail;
 	}
 
-	/* set scaling to double - makes low-speed a bit more sane */
-	psmouse->set_scale(psmouse, PSMOUSE_SCALE21);
-
-	/* build lookup table for extended commands */
+	/* alloc space for byd_data */
 	priv = kzalloc(sizeof(*priv), GFP_KERNEL);
-	if (!priv) {
+	psmouse->private = priv;
+	if(!priv) {
 		error = -ENOMEM;
 		goto init_fail;
 	}
 
-	memset(priv, 0xff, sizeof(*priv));
-	for (i = 0; i < ARRAY_SIZE(byd_ext_cmd_data); i++) {
-		priv->ext_lookup[byd_ext_cmd_data[i].code] = i & 0xff;
-	}
-	psmouse->private = priv;
+	/* init struct and timer */
+	memset(priv, 0x00, sizeof(*priv));
+	/* signal touh end after not receiving movement packets for 32 ms */
+	setup_timer(&priv->timer, byd_clear_touch, (unsigned long)psmouse);
 
 #ifdef DEBUG
 	psmouse_dbg(psmouse, "detect: exit command mode\n");
@@ -454,9 +425,12 @@ init_fail:
 
 static void byd_disconnect(struct psmouse *psmouse)
 {
-	if (psmouse->private)
+	if (psmouse->private) {	
+		struct byd_data *priv = psmouse->private;
+		del_timer(&priv->timer);
 		kfree(psmouse->private);
-	psmouse->private = NULL;
+		psmouse->private = NULL;
+	}
 }
 
 static int byd_reconnect(struct psmouse *psmouse)
@@ -488,8 +462,10 @@ int byd_detect(struct psmouse *psmouse, bool set_properties)
 	    ps2_command(ps2dev, param, PSMOUSE_CMD_GETINFO))
 		return -EIO;
 
+#ifdef DEBUG
 	psmouse_dbg(psmouse, "detect: model id: %x %x %x\n",
 			param[0], param[1], param[2]);
+#endif
 
 	/*
 	 * match the device - the first byte, param[0], appears to be set
@@ -504,47 +480,48 @@ int byd_detect(struct psmouse *psmouse, bool set_properties)
 
 	/* no match found */
 	if (i == ARRAY_SIZE(byd_model_data)) {
+#ifdef DEBUG		
 		psmouse_dbg(psmouse, "detect: no match found\n");
+#endif		
 		return -EINVAL;
 	} else {
+#ifdef DEBUG		
 		psmouse_dbg(psmouse, "detect: matched %s\n",
 				byd_model_data[i].name);
+#endif		
 	}
 
 	if (set_properties) {
-		#if 0
-		__set_bit(BTN_SIDE, psmouse->dev->keybit);
-		__set_bit(BTN_FORWARD, psmouse->dev->keybit);
-		__set_bit(BTN_BACK, psmouse->dev->keybit);
-		__set_bit(BTN_TASK, psmouse->dev->keybit);
-		__set_bit(BTN_MOUSE+8, psmouse->dev->keybit);
-		__set_bit(BTN_MOUSE+9, psmouse->dev->keybit);
-		__set_bit(BTN_MOUSE+10, psmouse->dev->keybit);
-		__set_bit(BTN_MIDDLE, psmouse->dev->keybit);
-		__set_bit(REL_WHEEL, psmouse->dev->relbit);
-		__set_bit(REL_HWHEEL, psmouse->dev->relbit);
-		__set_bit(REL_MISC, psmouse->dev->relbit);
-		__set_bit(REL_Z, psmouse->dev->relbit);
-		__set_bit(REL_RZ, psmouse->dev->relbit);
-		#endif
-		
 		struct input_dev *dev = psmouse->dev;
 
-		__set_bit(INPUT_PROP_BUTTONPAD, dev->propbit);
+		__set_bit(INPUT_PROP_POINTER, dev->propbit);
 
+		/* touchpad */
  		__set_bit(BTN_TOUCH, dev->keybit);
 		__set_bit(BTN_TOOL_FINGER, dev->keybit);
-		
-		__set_bit(EV_KEY, dev->evbit);
-		__set_bit(EV_REL, dev->evbit);
-		__set_bit(REL_X, dev->relbit);
-		__set_bit(REL_Y, dev->relbit);
 
-		__set_bit(REL_WHEEL, dev->relbit);
-		__set_bit(REL_HWHEEL, dev->relbit);
+		/* buttons */
+		__set_bit(BTN_LEFT, dev->keybit);
+		__set_bit(BTN_RIGHT, dev->keybit);
+		__clear_bit(BTN_MIDDLE, dev->keybit);
+
+		__set_bit(EV_ABS, dev->evbit);
+		/* 
+		 * the resolution is actually 255x255, but we'll mul by 10 
+		 * to get a bit more accurate res values (dots/mm)
+		 * device active area dimensions are 101.6 x 60.1 mm
+		 */
+		input_set_abs_params(dev, ABS_X, 0, 2550, 0, 0);
+		input_set_abs_params(dev, ABS_Y, 0, 2550, 0, 0);
+		input_abs_set_res(dev, ABS_X, 25);
+		input_abs_set_res(dev, ABS_Y, 42);
+
+		/* no relative support */
+		__clear_bit(EV_REL, dev->evbit);
+		__clear_bit(REL_X, dev->relbit);
+		__clear_bit(REL_Y, dev->relbit);
 
 		psmouse->vendor = "BYD";
-		//psmouse->name = byd_model_data[i].name;
 		psmouse->name = "TouchPad";
 		psmouse->protocol_handler = byd_process_byte;
 		psmouse->pktsize = 4;
