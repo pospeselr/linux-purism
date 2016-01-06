@@ -11,7 +11,7 @@
  * License, or (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warran`ty of
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  * General Public License for more details.
  *
@@ -401,7 +401,6 @@ int byd_init(struct psmouse *psmouse)
 
 	/* alloc space for byd_data */
 	priv = kzalloc(sizeof(*priv), GFP_KERNEL);
-	psmouse->private = priv;
 	if(!priv) {
 		error = -ENOMEM;
 		goto init_fail;
@@ -411,6 +410,7 @@ int byd_init(struct psmouse *psmouse)
 	memset(priv, 0x00, sizeof(*priv));
 	/* signal touh end after not receiving movement packets for 32 ms */
 	setup_timer(&priv->timer, byd_clear_touch, (unsigned long)psmouse);
+	psmouse->private = priv;
 
 #ifdef DEBUG
 	psmouse_dbg(psmouse, "detect: exit command mode\n");
