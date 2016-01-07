@@ -214,7 +214,7 @@ static const struct byd_init_command_pair init_commands[] = {
 	{BYD_CMD_SET_TAP, 0x02},
 	{BYD_CMD_SET_ONE_FINGER_SCROLL, 0x04},
 	{BYD_CMD_SET_EDGE_MOTION, 0x01},
-	{BYD_CMD_SET_PALM_CHECK, 0x01},
+	{BYD_CMD_SET_PALM_CHECK, 0x00},
 	{BYD_CMD_SET_MULTITOUCH, 0x01},
 	{BYD_CMD_SET_TWO_FINGER_SCROLL, 0x03},
 	{BYD_CMD_SET_TWO_FINGER_SCROLL_FUNC, 0x00},
@@ -239,9 +239,11 @@ struct byd_data
 {
 	uint8_t abs_x;
 	uint8_t abs_y;
-	uint8_t button_left : 1;
-	uint8_t button_right : 1;
-	uint8_t touch : 1;
+	uint8_t button_left      : 1;
+	uint8_t button_right     : 1;
+	uint8_t touch            : 1;
+	int8_t vertical_scroll   : 2;
+	int8_t horizontal_scroll : 2;
 	struct timer_list timer;
 };
 
@@ -255,6 +257,10 @@ static void byd_report_input(struct psmouse *psmouse)
 	input_report_key(dev, BTN_LEFT, priv->button_left);
 	input_report_key(dev, BTN_RIGHT, priv->button_right);
 	input_report_key(dev, BTN_TOUCH, priv->touch);
+	input_report_key(dev, BTN_0, priv->vertical_scroll == 1 ? 1 : 0);
+	input_report_key(dev, BTN_1, priv->vertical_scroll == -1 ? 1 : 0);
+	input_report_key(dev, BTN_2, priv->horizontal_scroll == 1 ? 1 : 0);
+	input_report_key(dev, BTN_3, priv->horizontal_scroll == -1 ? 1 : 0);
 
 	input_report_key(dev, BTN_TOOL_FINGER, 1);
 	
@@ -288,23 +294,50 @@ static psmouse_ret_t byd_process_byte(struct psmouse *psmouse)
 			packet[0], packet[1], packet[2], packet[3]);
 #endif
 
+	printk("process: packet = %x %x %x %x\n",
+			packet[0], packet[1], packet[2], packet[3]);
+
 	switch(packet[3])
 	{
 		case BYD_PKT_ABSOLUTE:
 			priv->abs_x = packet[1];
 			priv->abs_y = 255 - packet[2];
 			priv->touch = 1;
-			/* fall through */
+		/* fall through */
 		case BYD_PKT_RELATIVE:
 			priv->button_right = (packet[0] >> 1) & 1;
 			priv->button_left = packet[0] & 1;
 			break;
+		/* 
+		 * communicate two-finger scroll events as 
+		 * scroll button press/release
+		 */
+		case BYD_PKT_TWO_FINGER_SCROLL_UP:
+			priv->vertical_scroll = 1;
+			byd_report_input(psmouse);
+			priv->vertical_scroll = 0;
+			break;
+		case BYD_PKT_TWO_FINGER_SCROLL_DOWN:
+			priv->vertical_scroll = -1;
+			byd_report_input(psmouse);
+			priv->vertical_scroll = 0;
+			break;
+		case BYD_PKT_TWO_FINGER_SCROLL_RIGHT:
+			priv->horizontal_scroll = -1;
+			byd_report_input(psmouse);
+			priv->horizontal_scroll = 0;
+			break;
+		case BYD_PKT_TWO_FINGER_SCROLL_LEFT:
+			priv->horizontal_scroll = 1;
+			byd_report_input(psmouse);
+			priv->horizontal_scroll = 0;
 	}
 
 	byd_report_input(psmouse);
+	
 	/* reset time since last touch */
-	mod_timer(&priv->timer, jiffies + msecs_to_jiffies(32));	
-
+	mod_timer(&priv->timer, jiffies + msecs_to_jiffies(32));
+	
 	return PSMOUSE_FULL_PACKET;
 }
 
@@ -505,10 +538,17 @@ int byd_detect(struct psmouse *psmouse, bool set_properties)
 		__set_bit(BTN_RIGHT, dev->keybit);
 		__clear_bit(BTN_MIDDLE, dev->keybit);
 
+		/* two-finger scroll gesture */
+		__set_bit(BTN_0, dev->keybit);
+		__set_bit(BTN_1, dev->keybit);
+		__set_bit(BTN_2, dev->keybit);
+		__set_bit(BTN_3, dev->keybit);
+
+		/* absolute position */
 		__set_bit(EV_ABS, dev->evbit);
 		/* 
 		 * the resolution is actually 255x255, but we'll mul by 10 
-		 * to get a bit more accurate res values (dots/mm)
+		 * to get a bit more accurate res values (dots/mm) 
 		 * device active area dimensions are 101.6 x 60.1 mm
 		 */
 		input_set_abs_params(dev, ABS_X, 0, 2550, 0, 0);
