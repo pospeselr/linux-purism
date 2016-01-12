@@ -38,6 +38,22 @@
 #define BYD_CMD_PAIR(c)		((1 << 12) | (c))
 #define BYD_CMD_PAIR_R(r,c)	((1 << 12) | (r << 8) | (c))
 
+/* BYD pad constants */
+
+/* 
+ * true device resolution is unknown, however experiments show the
+ * resolution is about 111 units/mm
+ * absolute coordinate packets are in the range 0-255 for both X and y
+ * we pick ABS_X/ABS_Y dimensions which are multiples of 256 and in 
+ * the right ballpark given the touchpad's physical dimensions and estimate resolution
+ * per spec sheet, device active area dimensions are 101.6 x 60.1 mm
+ */
+
+#define BYD_CONST_PAD_WIDTH                     11264
+#define BYD_CONST_PAD_HEIGHT                    6656
+#define BYD_CONST_PAD_RESOLUTION                111
+
+
 /* BYD commands reverse engineered from windows driver */
 
 /* 
@@ -237,14 +253,16 @@ static struct byd_model_info byd_model_data[] = {
 
 struct byd_data
 {
-	uint8_t abs_x;
-	uint8_t abs_y;
+	struct timer_list timer;
+	int32_t abs_x;
+	int32_t abs_y;
+	int16_t rel_x            : 9;
+	int16_t rel_y            : 9;
 	uint8_t button_left      : 1;
 	uint8_t button_right     : 1;
 	uint8_t touch            : 1;
 	int8_t vertical_scroll   : 2;
 	int8_t horizontal_scroll : 2;
-	struct timer_list timer;
 };
 
 static void byd_report_input(struct psmouse *psmouse)
@@ -252,8 +270,8 @@ static void byd_report_input(struct psmouse *psmouse)
 	struct byd_data *priv = (struct byd_data *)psmouse->private;
 	struct input_dev *dev = psmouse->dev;
 
-	input_report_abs(dev, ABS_X, 10 * priv->abs_x);
-	input_report_abs(dev, ABS_Y, 10 * priv->abs_y);
+	input_report_abs(dev, ABS_X, priv->abs_x);
+	input_report_abs(dev, ABS_Y, priv->abs_y);
 	input_report_key(dev, BTN_LEFT, priv->button_left);
 	input_report_key(dev, BTN_RIGHT, priv->button_right);
 	input_report_key(dev, BTN_TOUCH, priv->touch);
@@ -294,24 +312,41 @@ static psmouse_ret_t byd_process_byte(struct psmouse *psmouse)
 			packet[0], packet[1], packet[2], packet[3]);
 #endif
 
-	printk("process: packet = %x %x %x %x\n",
-			packet[0], packet[1], packet[2], packet[3]);
-
 	switch(packet[3])
 	{
 		case BYD_PKT_ABSOLUTE:
-			priv->abs_x = packet[1];
-			priv->abs_y = 255 - packet[2];
-			priv->touch = 1;
-		/* fall through */
+			/* on first touch, use the absolute packet to determine our start location */
+			if(priv->touch == 0)
+			{
+				priv->button_left = packet[0] & 1;
+				priv->button_right = (packet[0] >> 1) & 1;
+				priv->abs_x = packet[1] * (11264 / 256);
+				priv->abs_y = (255 - packet[2]) * (6656 / 256);
+				priv->touch = 1;
+			}
+			break;
 		case BYD_PKT_RELATIVE:
-			priv->button_right = (packet[0] >> 1) & 1;
 			priv->button_left = packet[0] & 1;
+			priv->button_right = (packet[0] >> 1) & 1;
+			priv->rel_x = packet[1] ? (int) packet[1] - (int) ((packet[0] << 4) & 0x100) : 0;
+			priv->rel_y = packet[2] ? (int) ((packet[0] << 3) & 0x100) - (int) packet[2] : 0;
+
+			/* 
+			 * experiments show relative mouse packets come in increments of 
+			 * 1 unit / 11 msecs (regardless of time delta between relative packets)
+			 */
+			priv->abs_x += priv->rel_x * 11;
+			priv->abs_y += priv->rel_y * 11;
+
+			priv->abs_x = clamp(priv->abs_x, 0, BYD_CONST_PAD_WIDTH);
+			priv->abs_y = clamp(priv->abs_y, 0, BYD_CONST_PAD_HEIGHT);
+
+			priv->touch = 1;
 			break;
 		/* 
 		 * communicate two-finger scroll events as 
 		 * scroll button press/release
-		 */
+		 */	
 		case BYD_PKT_TWO_FINGER_SCROLL_UP:
 			priv->vertical_scroll = 1;
 			byd_report_input(psmouse);
@@ -546,15 +581,11 @@ int byd_detect(struct psmouse *psmouse, bool set_properties)
 
 		/* absolute position */
 		__set_bit(EV_ABS, dev->evbit);
-		/* 
-		 * the resolution is actually 255x255, but we'll mul by 10 
-		 * to get a bit more accurate res values (dots/mm) 
-		 * device active area dimensions are 101.6 x 60.1 mm
-		 */
-		input_set_abs_params(dev, ABS_X, 0, 2550, 0, 0);
-		input_set_abs_params(dev, ABS_Y, 0, 2550, 0, 0);
-		input_abs_set_res(dev, ABS_X, 25);
-		input_abs_set_res(dev, ABS_Y, 42);
+
+		input_set_abs_params(dev, ABS_X, 0, BYD_CONST_PAD_WIDTH, 0, 0);
+		input_set_abs_params(dev, ABS_Y, 0, BYD_CONST_PAD_HEIGHT, 0, 0);
+		input_abs_set_res(dev, ABS_X, BYD_CONST_PAD_RESOLUTION);
+		input_abs_set_res(dev, ABS_Y, BYD_CONST_PAD_RESOLUTION);
 
 		/* no relative support */
 		__clear_bit(EV_REL, dev->evbit);
