@@ -256,6 +256,7 @@ struct byd_data
 	struct timer_list timer;
 	int32_t abs_x;
 	int32_t abs_y;
+	uint32_t last_touch_time;
 	int16_t rel_x            : 9;
 	int16_t rel_y            : 9;
 	uint8_t button_left      : 1;
@@ -303,6 +304,8 @@ static psmouse_ret_t byd_process_byte(struct psmouse *psmouse)
 {
 	struct byd_data *priv = psmouse->private;
 	unsigned char *packet = psmouse->packet;
+	uint32_t now_msecs = jiffies_to_msecs(jiffies);
+
 
 	if (psmouse->pktcnt < psmouse->pktsize)
 		return PSMOUSE_GOOD_DATA;
@@ -312,17 +315,23 @@ static psmouse_ret_t byd_process_byte(struct psmouse *psmouse)
 			packet[0], packet[1], packet[2], packet[3]);
 #endif
 
+	printk("packet: %u %02x, %02x, %02x, %02x\n",
+			jiffies_to_msecs(jiffies), packet[0], packet[1], packet[2], packet[3]);
+
 	switch(packet[3])
 	{
 		case BYD_PKT_ABSOLUTE:
 			/* on first touch, use the absolute packet to determine our start location */
-			if(priv->touch == 0)
-			{
+			if(priv->touch == 0) {
 				priv->button_left = packet[0] & 1;
 				priv->button_right = (packet[0] >> 1) & 1;
-				priv->abs_x = packet[1] * (11264 / 256);
-				priv->abs_y = (255 - packet[2]) * (6656 / 256);
-				priv->touch = 1;
+				priv->abs_x = packet[1] * (BYD_CONST_PAD_WIDTH / 256);
+				priv->abs_y = (255 - packet[2]) * (BYD_CONST_PAD_HEIGHT / 256);
+
+				/* needed to detect tap when edge scrolling */
+				if(now_msecs - priv->last_touch_time > 64) {
+					priv->touch = 1;
+				}
 			}
 			break;
 		case BYD_PKT_RELATIVE:
@@ -337,9 +346,6 @@ static psmouse_ret_t byd_process_byte(struct psmouse *psmouse)
 			 */
 			priv->abs_x += priv->rel_x * 11;
 			priv->abs_y += priv->rel_y * 11;
-
-			priv->abs_x = clamp(priv->abs_x, 0, BYD_CONST_PAD_WIDTH);
-			priv->abs_y = clamp(priv->abs_y, 0, BYD_CONST_PAD_HEIGHT);
 
 			priv->touch = 1;
 			break;
@@ -371,8 +377,11 @@ static psmouse_ret_t byd_process_byte(struct psmouse *psmouse)
 	byd_report_input(psmouse);
 	
 	/* reset time since last touch */
-	mod_timer(&priv->timer, jiffies + msecs_to_jiffies(32));
-	
+	if(priv->touch == 1) {
+		priv->last_touch_time = now_msecs;
+		mod_timer(&priv->timer, jiffies + msecs_to_jiffies(32));
+	}
+
 	return PSMOUSE_FULL_PACKET;
 }
 
@@ -476,7 +485,7 @@ int byd_init(struct psmouse *psmouse)
 
 	/* init struct and timer */
 	memset(priv, 0x00, sizeof(*priv));
-	/* signal touh end after not receiving movement packets for 32 ms */
+	/* signal touch end after not receiving movement packets for 32 ms */
 	setup_timer(&priv->timer, byd_clear_touch, (unsigned long)psmouse);
 	psmouse->private = priv;
 
