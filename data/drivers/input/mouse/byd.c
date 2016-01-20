@@ -281,7 +281,7 @@ static void byd_report_input(struct psmouse *psmouse)
 	input_report_key(dev, BTN_2, priv->horizontal_scroll == 1 ? 1 : 0);
 	input_report_key(dev, BTN_3, priv->horizontal_scroll == -1 ? 1 : 0);
 
-	input_report_key(dev, BTN_TOOL_FINGER, 1);
+	input_report_key(dev, BTN_TOOL_FINGER, priv->touch);
 	
 	input_sync(dev);
 }
@@ -315,9 +315,6 @@ static psmouse_ret_t byd_process_byte(struct psmouse *psmouse)
 			packet[0], packet[1], packet[2], packet[3]);
 #endif
 
-	printk("packet: %u %02x, %02x, %02x, %02x\n",
-			jiffies_to_msecs(jiffies), packet[0], packet[1], packet[2], packet[3]);
-
 	switch(packet[3])
 	{
 		case BYD_PKT_ABSOLUTE:
@@ -328,7 +325,7 @@ static psmouse_ret_t byd_process_byte(struct psmouse *psmouse)
 				priv->abs_x = packet[1] * (BYD_CONST_PAD_WIDTH / 256);
 				priv->abs_y = (255 - packet[2]) * (BYD_CONST_PAD_HEIGHT / 256);
 
-				/* needed to detect tap when edge scrolling */
+				/* needed to detect tap */
 				if(now_msecs - priv->last_touch_time > 64) {
 					priv->touch = 1;
 				}
