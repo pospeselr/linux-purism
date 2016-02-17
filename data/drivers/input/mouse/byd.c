@@ -58,9 +58,10 @@
  * Given the above dimensions, relative packets velocity is in multiples of
  * 1 unit / 11 milliseconds.  We use this dt to estimate distance traveled
  */
-#define BYD_DT			11
+#define BYD_DT				11
 /* Time in milliseconds used to timeout various touch events */
-#define BYD_TOUCH_TIMEOUT	64
+#define BYD_TOUCH_TIMEOUT_MS		64
+#define BYD_TOUCH_TIMEOUT_JIFFIES	msecs_to_jiffies(BYD_TOUCH_TIMEOUT_MS)
 
 /* BYD commands reverse engineered from windows driver */
 
@@ -277,7 +278,7 @@ static void byd_clear_touch(unsigned long data)
 static psmouse_ret_t byd_process_byte(struct psmouse *psmouse)
 {
 	struct byd_data *priv = psmouse->private;
-	u32 now_msecs = jiffies_to_msecs(jiffies);
+	u32 now = jiffies_to_msecs(jiffies);
 	u8 *pkt = psmouse->packet;
 
 	if (psmouse->pktcnt > 0 && !(pkt[0] & PS2_ALWAYS_1)) {
@@ -299,7 +300,7 @@ static psmouse_ret_t byd_process_byte(struct psmouse *psmouse)
 				      (BYD_PAD_HEIGHT / 256);
 
 			/* needed to detect tap */
-			if (now_msecs - priv->last_touch_time > BYD_TOUCH_TIMEOUT)
+			if (now - priv->last_touch_time > BYD_TOUCH_TIMEOUT_MS)
 				priv->touch = true;
 		}
 		break;
@@ -333,8 +334,8 @@ static psmouse_ret_t byd_process_byte(struct psmouse *psmouse)
 
 	/* Reset time since last touch. */
 	if (priv->touch) {
-		priv->last_touch_time = now_msecs;
-		mod_timer(&priv->timer, jiffies + msecs_to_jiffies(BYD_TOUCH_TIMEOUT));
+		priv->last_touch_time = now;
+		mod_timer(&priv->timer, jiffies + BYD_TOUCH_TIMEOUT_JIFFIES);
 	}
 
 	return PSMOUSE_FULL_PACKET;
